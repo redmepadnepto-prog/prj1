@@ -1,0 +1,225 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Lora:ital,wght@0,400..700;1,400..700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* DENTYUSS Brand — Electric Midnight palette */
+    --background: 230 25% 6%;
+    --foreground: 220 15% 90%;
+
+    --card: 228 22% 9%;
+    --card-foreground: 220 15% 90%;
+
+    --popover: 228 22% 9%;
+    --popover-foreground: 220 15% 90%;
+
+    --primary: 195 100% 50%;
+    --primary-foreground: 230 25% 6%;
+
+    --secondary: 228 20% 14%;
+    --secondary-foreground: 220 10% 70%;
+
+    --muted: 228 18% 12%;
+    --muted-foreground: 220 8% 50%;
+
+    --accent: 265 90% 65%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 228 18% 16%;
+    --input: 228 18% 14%;
+    --ring: 195 100% 50%;
+
+    --chart-1: 195 100% 50%;
+    --chart-2: 265 90% 65%;
+    --chart-3: 320 80% 60%;
+    --chart-4: 45 95% 55%;
+    --chart-5: 160 80% 50%;
+
+    --sidebar: 228 22% 8%;
+    --sidebar-foreground: 220 15% 85%;
+    --sidebar-primary: 195 100% 50%;
+    --sidebar-primary-foreground: 230 25% 6%;
+    --sidebar-accent: 265 90% 65%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 228 18% 14%;
+    --sidebar-ring: 195 100% 50%;
+
+    /* Fonts */
+    --font-sans: 'Space Grotesk', sans-serif;
+    --font-serif: Lora, serif;
+    --font-mono: 'DM Mono', monospace;
+
+    /* Shadows */
+    --shadow-2xs: 0px 2px 4px hsl(0 0% 0% / 0.3);
+    --shadow-xs: 0px 4px 8px hsl(0 0% 0% / 0.35);
+    --shadow-sm: 0px 4px 12px hsl(0 0% 0% / 0.4), 0px 1px 3px hsl(0 0% 0% / 0.3);
+    --shadow: 0px 6px 16px hsl(0 0% 0% / 0.4), 0px 2px 4px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0px 8px 24px hsl(0 0% 0% / 0.4), 0px 4px 8px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0px 12px 36px hsl(0 0% 0% / 0.45), 0px 6px 12px hsl(0 0% 0% / 0.3);
+    --shadow-xl: 0px 20px 48px hsl(0 0% 0% / 0.5);
+    --shadow-2xl: 0px 32px 64px hsl(0 0% 0% / 0.6);
+
+    --shadow-glow-primary: 0 0 30px hsl(195 100% 50% / 0.35), 0 0 60px hsl(195 100% 50% / 0.15);
+    --shadow-glow-accent: 0 0 30px hsl(265 90% 65% / 0.35), 0 0 60px hsl(265 90% 65% / 0.15);
+
+    /* Misc */
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+    --radius: 0.625rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: var(--tracking-normal);
+  }
+}
+
+/* ─── Animations ─────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px hsl(195 100% 50% / 0.3); }
+  50%       { box-shadow: 0 0 40px hsl(195 100% 50% / 0.6), 0 0 80px hsl(195 100% 50% / 0.2); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes borderBeam {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes bounce-in {
+  0%   { opacity: 0; transform: scale(0.8); }
+  60%  { opacity: 1; transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* ─── Utility classes ────────────────────────── */
+
+.animate-fade-in {
+  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    hsl(195 100% 50%) 0%,
+    hsl(265 90% 75%) 30%,
+    hsl(195 100% 70%) 50%,
+    hsl(265 90% 75%) 70%,
+    hsl(195 100% 50%) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+.glass-card {
+  background: linear-gradient(135deg, hsl(228 22% 11% / 0.8), hsl(228 22% 8% / 0.9));
+  backdrop-filter: blur(16px);
+  border: 1px solid hsl(195 100% 50% / 0.12);
+}
+
+.neon-border {
+  border: 1px solid hsl(195 100% 50% / 0.3);
+  box-shadow: 0 0 12px hsl(195 100% 50% / 0.15), inset 0 0 12px hsl(195 100% 50% / 0.05);
+}
+
+.neon-border:focus-within {
+  border-color: hsl(195 100% 50% / 0.7);
+  box-shadow: 0 0 20px hsl(195 100% 50% / 0.3), inset 0 0 8px hsl(195 100% 50% / 0.08);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(hsl(195 100% 50% / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(195 100% 50% / 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.key-input {
+  background: transparent;
+  font-family: var(--font-mono);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  caret-color: hsl(195 100% 50%);
+}
+
+.key-input::placeholder {
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.key-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

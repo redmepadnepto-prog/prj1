@@ -1,2 +1,42 @@
+# Node.js
 node_modules/
 .env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Analysis temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Build artifacts (если будут дополнительные инструменты)
+build/
+dist/
+out/
+
+# Logs
+*.log
+logs/
+
+# Sensitive data (если появятся)
+secrets/
+private/
+*.key
+*.pem
+
+# Analysis tools output
+.frida/
+.ghidra/
+.jadx/

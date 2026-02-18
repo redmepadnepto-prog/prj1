@@ -1,0 +1,796 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    ReaperX (CheatBox) v1.0 - Architecture Diagrams
+═══════════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 1: OVERALL ARCHITECTURE
+═══════════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                        USER INTERFACE                                │
+    │                      (Material Design)                               │
+    └────────────────────────────┬────────────────────────────────────────┘
+                                 │
+    ┌────────────────────────────▼────────────────────────────────────────┐
+    │                      JAVA/KOTLIN LAYER                               │
+    │                        (classes.dex)                                 │
+    │                                                                      │
+    │  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────┐   │
+    │  │ LoginActivity│  │ MainActivity │  │   hCore Framework       │   │
+    │  └──────────────┘  └──────────────┘  │   (Virtualization)      │   │
+    │                                       │   - DaemonService        │   │
+    │  ┌──────────────┐                    │   - ProxyVpnService      │   │
+    │  │   App.java   │                    │   - ProxyActivity×11     │   │
+    │  │  (Entry)     │                    │   - FileProvider         │   │
+    │  └──────────────┘                    └─────────────────────────┘   │
+    │                                                                      │
+    │  ┌──────────────────────────────────────────────────────────────┐   │
+    │  │                    SuprJni Bridge                            │   │
+    │  │  (JNI Interface to Native Libraries)                         │   │
+    │  └─────────────────────────┬────────────────────────────────────┘   │
+    └────────────────────────────┼────────────────────────────────────────┘
+                                 │
+    ┌────────────────────────────▼────────────────────────────────────────┐
+    │                      NATIVE LAYER (C/C++)                            │
+    │                                                                      │
+    │  ┌───────────────────────────────────────────────────────────────┐  │
+    │  │            libcheatbox.so (2.7 MB)                            │  │
+    │  │  ┌─────────────────────────────────────────────────────────┐  │  │
+    │  │  │  • Java_com_cheatbox_SuprJni_Check()                    │  │  │
+    │  │  │  • Java_com_cheatbox_SuprJni_checkSignature()          │  │  │
+    │  │  │  • Java_com_cheatbox_SuprJni_licence()                 │  │  │
+    │  │  │  • Java_com_cheatbox_SuprJni_getTime()                 │  │  │
+    │  │  │  • kill(getpid()) mechanism                             │  │  │
+    │  │  │  • exit() on signature mismatch                         │  │  │
+    │  │  └─────────────────────────────────────────────────────────┘  │  │
+    │  └───────────────────────────────────────────────────────────────┘  │
+    │                                                                      │
+    │  ┌───────────────────────────────────────────────────────────────┐  │
+    │  │         libkaaladibba.so (344 KB)                            │  │
+    │  │         (Support Library)                                     │  │
+    │  └───────────────────────────────────────────────────────────────┘  │
+    │                                                                      │
+    │  ┌───────────────────────────────────────────────────────────────┐  │
+    │  │      lib2f8c0b3257fcc345.so (369 KB)                         │  │
+    │  │      (Protection Library - Level 3)                          │  │
+    │  │  ┌─────────────────────────────────────────────────────────┐  │  │
+    │  │  │  • Anti-debugging                                        │  │  │
+    │  │  │  • Frida/Xposed detection                               │  │  │
+    │  │  │  • Memory integrity checks                               │  │  │
+    │  │  │  • SCHEDULE_CRASH flag                                  │  │  │
+    │  │  │  • Delayed crash mechanism                               │  │  │
+    │  │  └─────────────────────────────────────────────────────────┘  │  │
+    │  └───────────────────────────────────────────────────────────────┘  │
+    └──────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 2: 5-LAYER PROTECTION SYSTEM
+═══════════════════════════════════════════════════════════════════════════════
+
+                            APPLICATION START
+                                    │
+                    ┌───────────────▼───────────────┐
+                    │   Application Initialized     │
+                    └───────────────┬───────────────┘
+                                    │
+        ╔═══════════════════════════▼═══════════════════════════╗
+        ║                    LEVEL 5                            ║
+        ║              CrashHandler (Global)                    ║
+        ║                                                       ║
+        ║  Thread.setDefaultUncaughtExceptionHandler()         ║
+        ║  ↓                                                    ║
+        ║  Catches ALL exceptions → Force crash                ║
+        ╚═══════════════════════════╤═══════════════════════════╝
+                                    │
+        ╔═══════════════════════════▼═══════════════════════════╗
+        ║                    LEVEL 4                            ║
+        ║           DaemonService (Background)                  ║
+        ║                                                       ║
+        ║  ┌──────────────────────────────────────────┐        ║
+        ║  │  START_STICKY + Foreground Service       │        ║
+        ║  │  ↓                                        │        ║
+        ║  │  Check every 5 seconds                   │        ║
+        ║  │  ↓                                        │        ║
+        ║  │  if (!SuprJni.Check()) { crash(); }      │        ║
+        ║  │  ↓                                        │        ║
+        ║  │  DaemonInnerService monitors DaemonService│        ║
+        ║  │  (Mutual resurrection)                   │        ║
+        ║  └──────────────────────────────────────────┘        ║
+        ╚═══════════════════════════╤═══════════════════════════╝
+                                    │
+        ╔═══════════════════════════▼═══════════════════════════╗
+        ║                    LEVEL 3                            ║
+        ║        lib2f8c0b3257fcc345.so (Hidden)                ║
+        ║                                                       ║
+        ║  __attribute__((constructor)) init_protection() {    ║
+        ║      if (detect_tampering())                         ║
+        ║          schedule_crash();                           ║
+        ║      if (detect_frida())                             ║
+        ║          schedule_crash();                           ║
+        ║      if (is_debugger_present())                      ║
+        ║          schedule_crash();                           ║
+        ║      start_continuous_monitoring();                  ║
+        ║  }                                                    ║
+        ║                                                       ║
+        ║  schedule_crash() {                                  ║
+        ║      sleep(5-30 sec);  // Random delay              ║
+        ║      kill(getpid(), SIGKILL);                        ║
+        ║  }                                                    ║
+        ╚═══════════════════════════╤═══════════════════════════╝
+                                    │
+        ╔═══════════════════════════▼═══════════════════════════╗
+        ║                    LEVEL 2                            ║
+        ║         APK Signature Verification                    ║
+        ║                                                       ║
+        ║  Java_com_cheatbox_SuprJni_checkSignature() {        ║
+        ║      actual_signature = get_apk_signature();         ║
+        ║      if (actual_signature != EXPECTED_SIGNATURE) {   ║
+        ║          exit(1);  // Immediate termination          ║
+        ║      }                                                ║
+        ║  }                                                    ║
+        ╚═══════════════════════════╤═══════════════════════════╝
+                                    │
+        ╔═══════════════════════════▼═══════════════════════════╗
+        ║                    LEVEL 1                            ║
+        ║             License Validation                        ║
+        ║                                                       ║
+        ║  Java_com_cheatbox_SuprJni_Check() {                 ║
+        ║      license_file = "/data/.../Key.lic";             ║
+        ║      if (!file_exists(license_file)) {               ║
+        ║          kill(getpid(), SIGKILL);  // Kernel-level   ║
+        ║      }                                                ║
+        ║      if (!validate_license(license_file)) {          ║
+        ║          kill(getpid(), SIGKILL);                    ║
+        ║      }                                                ║
+        ║      if (license_expired()) {                        ║
+        ║          kill(getpid(), SIGKILL);                    ║
+        ║      }                                                ║
+        ║  }                                                    ║
+        ╚═══════════════════════════╤═══════════════════════════╝
+                                    │
+                    ┌───────────────▼───────────────┐
+                    │    APPLICATION RUNNING        │
+                    └───────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 3: LICENSE VALIDATION FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    MainActivity.onCreate()
+           │
+           ▼
+    SuprJni.Check() ◄───────────────────┐
+           │                             │
+           ▼                             │
+    [JNI Bridge]                         │
+           │                             │
+           ▼                             │
+    libcheatbox.so                       │
+           │                             │
+           ├─► Get UID                   │
+           │   getuid()                  │
+           │                             │
+           ├─► Build path                │
+           │   /data/user/0/<UID>/files/Key.lic
+           │                             │
+           ├─► Check file exists         │
+           │   access(path, F_OK)        │
+           │   │                         │
+           │   ├─ NO ──► kill(getpid()) ──► [APP CRASH]
+           │   │                         │
+           │   └─ YES                    │
+           │      │                      │
+           │      ▼                      │
+           │   Open and read file        │
+           │   fopen(path, "rb")         │
+           │      │                      │
+           │      ▼                      │
+           │   Decrypt with AES-256      │
+           │   (embedded key)            │
+           │      │                      │
+           │      ▼                      │
+           │   Parse JSON structure      │
+           │   {                         │
+           │     "user": "...",          │
+           │     "expiration": 123456,   │
+           │     "hwid": "...",          │
+           │     "signature": "..."      │
+           │   }                         │
+           │      │                      │
+           │      ▼                      │
+           │   Verify RSA signature      │
+           │   (public key embedded)     │
+           │      │                      │
+           │      ├─ INVALID ──► kill(getpid()) ──► [APP CRASH]
+           │      │                      │
+           │      └─ VALID               │
+           │         │                   │
+           │         ▼                   │
+           │   Check expiration          │
+           │   time(NULL) > expiration?  │
+           │      │                      │
+           │      ├─ EXPIRED ──► kill(getpid()) ──► [APP CRASH]
+           │      │                      │
+           │      └─ VALID               │
+           │         │                   │
+           │         ▼                   │
+           │   Verify HWID               │
+           │   (device fingerprint)      │
+           │      │                      │
+           │      ├─ MISMATCH ──► kill(getpid()) ──► [APP CRASH]
+           │      │                      │
+           │      └─ MATCH               │
+           │         │                   │
+           │         ▼                   │
+           │   Calculate checksum        │
+           │   SHA256(decrypted_data)    │
+           │      │                      │
+           │      ├─ MISMATCH ──► kill(getpid()) ──► [APP CRASH]
+           │      │                      │
+           │      └─ MATCH               │
+           │                             │
+           ▼                             │
+    return JNI_TRUE                      │
+           │                             │
+           ▼                             │
+    [APP CONTINUES]                      │
+           │                             │
+           │                             │
+    DaemonService.run() ─────────────────┘
+    (Check every 5 seconds)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 4: hCore VIRTUALIZATION ARCHITECTURE
+═══════════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                    Android System                                   │
+    │                                                                     │
+    │  ┌───────────────────────────────────────────────────────────────┐  │
+    │  │  ActivityManager  │  PackageManager  │  WindowManager  │ ... │  │
+    │  └───────────────────┬───────────────────────────────────────────┘  │
+    │                      │                                              │
+    └──────────────────────┼──────────────────────────────────────────────┘
+                           │
+                           ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                  ReaperX Host Application                           │
+    │                                                                     │
+    │  ┌───────────────────────────────────────────────────────────────┐  │
+    │  │                   hCore Framework                             │  │
+    │  │                                                               │  │
+    │  │  ┌─────────────────────────────────────────────────────────┐  │  │
+    │  │  │            Interception Layer                           │  │  │
+    │  │  │                                                         │  │  │
+    │  │  │  ProxyActivity (P0-P10)  ────────► Intent Hooking     │  │  │
+    │  │  │  ProxyVpnService          ────────► Network Hooking   │  │  │
+    │  │  │  ProxyBroadcastReceiver   ────────► Broadcast Hooking │  │  │
+    │  │  │  SystemCallProvider       ────────► System Call Hook  │  │  │
+    │  │  │  FileProvider             ────────► File System Hook  │  │  │
+    │  │  └─────────────────────────────────────────────────────────┘  │  │
+    │  │                                                               │  │
+    │  │  ┌─────────────────────────────────────────────────────────┐  │  │
+    │  │  │           Virtual Environment Manager                   │  │  │
+    │  │  │                                                         │  │  │
+    │  │  │  • Package Name Spoofing                               │  │  │
+    │  │  │  • UID Isolation                                       │  │  │
+    │  │  │  • Sandbox File System                                 │  │  │
+    │  │  │  • Memory Space Isolation                              │  │  │
+    │  │  │  • Process Management                                   │  │  │
+    │  │  └─────────────────────────────────────────────────────────┘  │  │
+    │  │                                                               │  │
+    │  │  ┌─────────────────────────────────────────────────────────┐  │  │
+    │  │  │         Virtualized Application Container               │  │  │
+    │  │  │                                                         │  │  │
+    │  │  │  ┌───────────────────────────────────────────────────┐  │  │  │
+    │  │  │  │         Game Application (Target)                 │  │  │  │
+    │  │  │  │                                                   │  │  │  │
+    │  │  │  │  • Runs in isolated process                      │  │  │  │
+    │  │  │  │  • Thinks it's running natively                  │  │  │  │
+    │  │  │  │  • All system calls intercepted                  │  │  │  │
+    │  │  │  │  • Memory modifications applied                  │  │  │  │
+    │  │  │  │  • Game cheats active here                       │  │  │  │
+    │  │  │  │                                                   │  │  │  │
+    │  │  │  │  ┌──────────────────────────────────────────┐    │  │  │  │
+    │  │  │  │  │    Cheat Modifications Applied:           │    │  │  │  │
+    │  │  │  │  │    • Memory hacks                         │    │  │  │  │
+    │  │  │  │  │    • Speed hacks                          │    │  │  │  │
+    │  │  │  │  │    • Resource manipulation                │    │  │  │  │
+    │  │  │  │  │    • Anti-ban bypass                      │    │  │  │  │
+    │  │  │  │  └──────────────────────────────────────────┘    │  │  │  │
+    │  │  │  │                                                   │  │  │  │
+    │  │  │  └───────────────────────────────────────────────────┘  │  │  │
+    │  │  └─────────────────────────────────────────────────────────┘  │  │
+    │  │                                                               │  │
+    │  └───────────────────────────────────────────────────────────────┘  │
+    │                                                                     │
+    │  ┌───────────────────────────────────────────────────────────────┐  │
+    │  │              DaemonService (Monitoring)                       │  │
+    │  │  Continuously checks integrity & license                      │  │
+    │  └───────────────────────────────────────────────────────────────┘  │
+    └─────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 5: DAEMONSERVICE RESURRECTION MECHANISM
+═══════════════════════════════════════════════════════════════════════════════
+
+    ┌───────────────────────────────────────────────────────────────────┐
+    │                    Application Process                            │
+    │                                                                   │
+    │  ┌─────────────────────────────────────────────────────────────┐  │
+    │  │             DaemonService (Outer)                           │  │
+    │  │             (Foreground Service)                            │  │
+    │  │                                                             │  │
+    │  │  onStartCommand() {                                         │  │
+    │  │      startForeground(NOTIFICATION);                         │  │
+    │  │      startPeriodicChecks();  // Every 5 sec                │  │
+    │  │      startService(DaemonInnerService.class);                │  │
+    │  │  }                                                           │  │
+    │  │                                                             │  │
+    │  │  periodicCheck() {                                          │  │
+    │  │      if (!SuprJni.Check()) {                                │  │
+    │  │          throw RuntimeException("License invalid");         │  │
+    │  │      }                                                       │  │
+    │  │  }                                                           │  │
+    │  │                                                             │  │
+    │  │  onDestroy() {                                              │  │
+    │  │      // Schedule restart via AlarmManager                   │  │
+    │  │      alarmManager.set(now + 1000ms, restartIntent);         │  │
+    │  │  }                                                           │  │
+    │  └──────────────────┬──────────────────────────────────────────┘  │
+    │                     │                                             │
+    │                     │  Monitors                                   │
+    │                     │     ▲                                       │
+    │                     │     │                                       │
+    │                     ▼     │ Resurrects                            │
+    │  ┌─────────────────────────────────────────────────────────────┐  │
+    │  │           DaemonInnerService (Inner)                        │  │
+    │  │                                                             │  │
+    │  │  onStartCommand() {                                         │  │
+    │  │      new Thread(() -> {                                     │  │
+    │  │          while (true) {                                     │  │
+    │  │              sleep(3000);                                   │  │
+    │  │              if (!isServiceRunning(DaemonService.class)) {  │  │
+    │  │                  // Outer service dead - restart it         │  │
+    │  │                  startService(DaemonService.class);         │  │
+    │  │              }                                               │  │
+    │  │          }                                                   │  │
+    │  │      }).start();                                            │  │
+    │  │  }                                                           │  │
+    │  └─────────────────────────────────────────────────────────────┘  │
+    └───────────────────────────────────────────────────────────────────┘
+
+    Mutual Resurrection Pattern:
+    ────────────────────────────
+    
+    DaemonService Dies ──► AlarmManager triggers restart
+                           │
+                           ▼
+                        DaemonService restarted
+    
+    DaemonInnerService Dies ──► [No direct resurrection]
+                                 But DaemonService recreates it
+                                 on next startup
+    
+    Both Die ──► AlarmManager restarts DaemonService
+                 │
+                 ▼
+              DaemonService restarts DaemonInnerService
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 6: FILE STRUCTURE & COMPONENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+    ReaperX_1.0.apk (5.0 MB)
+    │
+    ├── AndroidManifest.xml (93 KB)
+    │   ├── com.cheatbox.LoginActivity
+    │   ├── com.cheatbox.MainActivity
+    │   ├── com.hCore.core.system.DaemonService
+    │   ├── com.hCore.core.system.DaemonService$DaemonInnerService
+    │   ├── com.hCore.app.LauncherActivity
+    │   ├── com.hCore.proxy.ProxyVpnService
+    │   └── com.hCore.proxy.ProxyActivity$P0..P10
+    │
+    ├── classes.dex (2.5 MB)
+    │   ├── com/cheatbox/
+    │   │   ├── App.class
+    │   │   ├── LoginActivity.class
+    │   │   ├── MainActivity.class
+    │   │   └── SuprJni.class
+    │   │
+    │   ├── com/hCore/
+    │   │   ├── core/system/
+    │   │   │   ├── DaemonService.class
+    │   │   │   ├── DaemonService$DaemonInnerService.class
+    │   │   │   └── SystemCallProvider.class
+    │   │   │
+    │   │   ├── app/
+    │   │   │   ├── LauncherActivity.class
+    │   │   │   ├── WebViewActivity.class
+    │   │   │   └── BActivityThread.class
+    │   │   │
+    │   │   └── proxy/
+    │   │       ├── ProxyVpnService.class
+    │   │       ├── ProxyBroadcastReceiver.class
+    │   │       └── ProxyActivity$P0..P10.class
+    │   │
+    │   └── androidx/... (Material Components)
+    │
+    ├── lib/arm64-v8a/
+    │   ├── libcheatbox.so (2.7 MB)
+    │   │   ├── [Symbol] Java_com_cheatbox_SuprJni_Check
+    │   │   ├── [Symbol] Java_com_cheatbox_SuprJni_checkSignature
+    │   │   ├── [Symbol] Java_com_cheatbox_SuprJni_licence
+    │   │   ├── [Symbol] Java_com_cheatbox_SuprJni_getTime
+    │   │   ├── [Symbol] Java_com_cheatbox_SuprJni_AppVersion
+    │   │   ├── [String] "/data/user/0/%s/files/Key.lic"
+    │   │   ├── [String] "kill"
+    │   │   └── [String] "exit"
+    │   │
+    │   └── libkaaladibba.so (344 KB)
+    │       └── [Support functions]
+    │
+    ├── assets/
+    │   ├── burriEnc (847 KB)
+    │   │   └── [Encrypted data/configuration]
+    │   │
+    │   ├── burriiiii/
+    │   │   ├── arm/
+    │   │   ├── arm64/
+    │   │   │   └── lib2f8c0b3257fcc345.so (369 KB)
+    │   │   │       ├── [Anti-debug functions]
+    │   │   │       ├── [Frida detection]
+    │   │   │       ├── [Memory integrity]
+    │   │   │       └── [Scheduled crash mechanism]
+    │   │   ├── x86/
+    │   │   └── x86_64/
+    │   │
+    │   ├── app_name
+    │   │   └── "com.cheatbox.App"
+    │   │
+    │   ├── app_acf
+    │   │   └── "androidx.core.app.CoreComponentFactory"
+    │   │
+    │   └── dexopt/
+    │       ├── baseline.prof
+    │       └── baseline.profm
+    │
+    ├── resources.arsc (542 KB)
+    │   └── [Compiled resources]
+    │
+    ├── kotlin/
+    │   ├── kotlin.kotlin_builtins
+    │   ├── collections/collections.kotlin_builtins
+    │   ├── ranges/ranges.kotlin_builtins
+    │   └── coroutines/coroutines.kotlin_builtins
+    │
+    ├── META-INF/
+    │   ├── MANIFEST.MF
+    │   ├── CERT.RSA
+    │   └── CERT.SF
+    │
+    └── okhttp3/
+        └── [OkHttp3 library resources]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 7: KEY.LIC FILE FORMAT
+═══════════════════════════════════════════════════════════════════════════════
+
+    Key.lic File Structure:
+    ═══════════════════════════════════════════════════════════════════════
+
+    Offset   Size    Description
+    ──────────────────────────────────────────────────────────────────────
+    0x00     4       Magic Number: 0x4B455900 ("KEY\0")
+    0x04     2       Version: 0x0001
+    0x06     1       Encryption Type: 0x02 (AES-256-CBC)
+    0x07     1       Reserved
+    0x08     8       File Size (excluding header)
+    ──────────────────────────────────────────────────────────────────────
+    0x10     16      AES IV (Initialization Vector)
+    ──────────────────────────────────────────────────────────────────────
+    0x20     N       Encrypted Payload:
+                     ┌────────────────────────────────────────────────┐
+                     │  JSON Structure (after decryption):            │
+                     │  {                                             │
+                     │    "version": 1,                               │
+                     │    "user": "username_here",                    │
+                     │    "expiration": 1739836800,  // Unix timestamp│
+                     │    "hwid": "device_fingerprint_hash",          │
+                     │    "features": [                               │
+                     │      "feature_1",                              │
+                     │      "feature_2",                              │
+                     │      "..."                                     │
+                     │    ],                                          │
+                     │    "reseller": "reseller_id",                  │
+                     │    "metadata": {                               │
+                     │      "issued": 1707350400,                     │
+                     │      "license_type": "premium"                 │
+                     │    },                                          │
+                     │    "signature": "RSA_2048_SIGNATURE_BASE64"    │
+                     │  }                                             │
+                     └────────────────────────────────────────────────┘
+    ──────────────────────────────────────────────────────────────────────
+    END-32   32      SHA-256 Checksum of decrypted payload
+    ──────────────────────────────────────────────────────────────────────
+
+    Validation Process:
+    ───────────────────
+    1. Read header and verify magic number
+    2. Extract IV and encrypted payload
+    3. Decrypt using AES-256-CBC (key embedded in libcheatbox.so)
+    4. Parse JSON
+    5. Verify RSA signature using embedded public key
+    6. Check expiration timestamp
+    7. Verify HWID matches current device
+    8. Calculate SHA-256 of decrypted data and compare with stored checksum
+    
+    Any failure → kill(getpid())
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 8: ATTACK SURFACE & BYPASS DIFFICULTY
+═══════════════════════════════════════════════════════════════════════════════
+
+    Attack Vector                   Difficulty    Detection by System
+    ──────────────────────────────────────────────────────────────────────────
+    
+    ┌──────────────────────────┐
+    │  Frida/Xposed Hooking    │    ★★★★★     Detected by Level 3
+    └──────────────────────────┘                (lib2f8c0b3257fcc345.so)
+                │
+                └─► lib2f8c0b3257fcc345.so detects:
+                    • Frida agent presence
+                    • Modified /proc/self/maps
+                    • Memory anomalies
+                    • Hook signatures
+                    
+    ┌──────────────────────────┐
+    │  DEX Patching            │    ★★★☆☆     Detected by Level 2
+    └──────────────────────────┘                (checkSignature)
+                │
+                └─► Changing classes.dex:
+                    • APK signature changes
+                    • checkSignature() fails
+                    • exit() triggered
+    
+    ┌──────────────────────────┐
+    │  Native Library Patching │    ★★★★★     Detected by Level 3
+    └──────────────────────────┘                (integrity checks)
+                │
+                └─► Modifying .so files:
+                    • Signature verification fails
+                    • Memory integrity checks fail
+                    • Scheduled crash triggered
+    
+    ┌──────────────────────────┐
+    │  License File Forging    │    ★★★★★     Detected by Level 1
+    └──────────────────────────┘                (RSA signature)
+                │
+                └─► Fake Key.lic:
+                    • RSA signature verification fails
+                    • Need private key (impossible)
+                    • kill(getpid()) triggered
+    
+    ┌──────────────────────────┐
+    │  Process Suspension      │    ★★☆☆☆     Detected by Level 4
+    └──────────────────────────┘                (DaemonService)
+                │
+                └─► Suspending process:
+                    • DaemonInnerService resurrects
+                    • AlarmManager restarts
+                    • Mutual resurrection
+    
+    ┌──────────────────────────┐
+    │  Debugger Attachment     │    ★★★★☆     Detected by Level 3
+    └──────────────────────────┘                (anti-debug)
+                │
+                └─► Attaching GDB/LLDB:
+                    • is_debugger_present() check
+                    • /proc/self/status parsing
+                    • ptrace detection
+    
+    ┌──────────────────────────┐
+    │  Memory Editing          │    ★★★★☆     Detected by Level 3 & 4
+    └──────────────────────────┘                (continuous monitoring)
+                │
+                └─► Game Guardian/Cheat Engine:
+                    • Memory integrity checks
+                    • Periodic validation
+                    • Anti-cheat detection
+    
+    ┌──────────────────────────┐
+    │  Full Rewrite with       │    ★★★★★     All levels bypassed
+    │  Server Emulation        │                but requires:
+    └──────────────────────────┘                • Complete RE
+                │                                • AES key extraction
+                └─► Complete reimplementation:   • Private key (impossible)
+                    • Requires months of work
+                    • Need to extract all crypto keys
+                    • Still can't forge RSA signature
+
+
+    Legend:
+    ★☆☆☆☆ - Easy
+    ★★☆☆☆ - Medium
+    ★★★☆☆ - Hard
+    ★★★★☆ - Very Hard
+    ★★★★★ - Nearly Impossible
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 9: NETWORK COMMUNICATION (HYPOTHETICAL)
+═══════════════════════════════════════════════════════════════════════════════
+
+    ┌───────────────────────┐                  ┌──────────────────────────┐
+    │  ReaperX Client       │                  │  ReaperX Backend Server  │
+    │  (Android Device)     │                  │  (License Server)        │
+    └───────────┬───────────┘                  └──────────┬───────────────┘
+                │                                         │
+                │  1. Initial License Request             │
+                ├─────────────────────────────────────────►
+                │  POST /api/license/activate             │
+                │  {                                      │
+                │    "hwid": "abc123...",                 │
+                │    "license_key": "XXXXX-XXXXX"         │
+                │  }                                      │
+                │                                         │
+                │           2. License Generation         │
+                │              (Server-side)              │
+                │◄─────────────────────────────────────────
+                │  Response: Key.lic file                 │
+                │  (AES encrypted + RSA signed)           │
+                │                                         │
+                │  3. Periodic Validation (Optional)      │
+                ├─────────────────────────────────────────►
+                │  POST /api/license/check                │
+                │  {                                      │
+                │    "license_hash": "hash..."            │
+                │  }                                      │
+                │                                         │
+                │◄─────────────────────────────────────────
+                │  {                                      │
+                │    "valid": true,                       │
+                │    "expiration": 1739836800             │
+                │  }                                      │
+                │                                         │
+                │  4. Version Check                       │
+                ├─────────────────────────────────────────►
+                │  GET /api/version/latest                │
+                │                                         │
+                │◄─────────────────────────────────────────
+                │  {                                      │
+                │    "version": "1.1",                    │
+                │    "download_url": "...",               │
+                │    "force_update": false                │
+                │  }                                      │
+                │                                         │
+                │  5. Crash Report (Optional)             │
+                ├─────────────────────────────────────────►
+                │  POST /api/crash/report                 │
+                │  {                                      │
+                │    "stacktrace": "...",                 │
+                │    "device_info": "...",                │
+                │    "license_status": "valid"            │
+                │  }                                      │
+                │                                         │
+                │◄─────────────────────────────────────────
+                │  {"status": "ok"}                       │
+                │                                         │
+                ▼                                         ▼
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DIAGRAM 10: MEMORY LAYOUT AT RUNTIME
+═══════════════════════════════════════════════════════════════════════════════
+
+    Process: com.cheatbox (PID: XXXX)
+    ═══════════════════════════════════════════════════════════════════════
+
+    Memory Address         Size         Component
+    ──────────────────────────────────────────────────────────────────────────
+    
+    [Kernel Space - Not Accessible]
+    ──────────────────────────────────────────────────────────────────────────
+    0xFFFFFFFF_FFFFFFFF
+         ...
+    0x7FFFFFFF_FFFFFFFF
+    
+    [User Space]
+    ──────────────────────────────────────────────────────────────────────────
+    0x7FFFFFFE_00000000    ~15 MB      Art Runtime (Dalvik VM)
+         │                             • GC Heap
+         │                             • JIT Compiler
+         │                             • Method Cache
+         ▼
+    
+    0x7FFFFFF0_00000000    ~8 MB       classes.dex (Loaded)
+         │                             ┌─────────────────────────┐
+         │                             │ com.cheatbox.*          │
+         │                             │ com.hCore.*             │
+         │                             │ androidx.*              │
+         │                             └─────────────────────────┘
+         ▼
+    
+    0x7FFFFFD0_00000000    ~4 MB       libcheatbox.so (Mapped)
+         │                             ┌─────────────────────────┐
+         │                             │ .text (Code)            │
+         │                             │ .rodata (Constants)     │
+         │                             │ .data (Global vars)     │
+         │                             │ .bss (Uninitialized)    │
+         │                             └─────────────────────────┘
+         │                             Key stored here:
+         │                             • AES-256 key (32 bytes)
+         │                             • RSA public key (2048-bit)
+         │                             • Expected signature hash
+         ▼
+    
+    0x7FFFFFE0_00000000    ~1 MB       libkaaladibba.so (Mapped)
+         ▼
+    
+    0x7FFFFFF1_00000000    ~1.5 MB     lib2f8c0b3257fcc345.so (Mapped)
+         │                             ┌─────────────────────────┐
+         │                             │ Anti-debug code         │
+         │                             │ Frida detection         │
+         │                             │ Integrity checks        │
+         │                             │ Crash scheduler         │
+         │                             └─────────────────────────┘
+         │                             Global flag:
+         │                             • SCHEDULE_CRASH (atomic)
+         ▼
+    
+    0x7FFFFF80_00000000    ~20 MB      hCore Framework Runtime
+         │                             ┌─────────────────────────┐
+         │                             │ Virtual Environment     │
+         │                             │ Process Management      │
+         │                             │ Hook Engine             │
+         │                             │ Proxy Components        │
+         │                             └─────────────────────────┘
+         ▼
+    
+    0x7FFFFC00_00000000    ~100 MB     Virtualized App Space
+         │                             ┌─────────────────────────┐
+         │                             │ Target Game Process     │
+         │                             │ (Isolated Memory)       │
+         │                             │                         │
+         │                             │ Game Modifications:     │
+         │                             │ • Memory patches        │
+         │                             │ • Function hooks        │
+         │                             │ • Value changes         │
+         │                             └─────────────────────────┘
+         ▼
+    
+    0x00000000_00001000    ~10 MB      Stack Space
+         │                             ┌─────────────────────────┐
+         │                             │ Main Thread             │
+         │                             │ DaemonService Thread    │
+         │                             │ Monitoring Thread       │
+         │                             │ ...                     │
+         │                             └─────────────────────────┘
+         ▼
+    
+    0x00000000_00000000                NULL / Unmapped
+    ──────────────────────────────────────────────────────────────────────────
+    
+    Total Memory Usage: ~160-200 MB
+    
+    Threads:
+    ────────
+    • Main UI Thread
+    • DaemonService Worker Thread
+    • DaemonInnerService Worker Thread
+    • lib2f8c0b3257fcc345.so Monitoring Thread
+    • hCore Framework Threads (multiple)
+    • Virtualized App Threads
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                            END OF DIAGRAMS
+═══════════════════════════════════════════════════════════════════════════════
